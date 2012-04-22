@@ -1,0 +1,24 @@
+#Import directive
+importFrom(FNN, get.knn, get.knnx, knn, knn.cv, knn.reg)
+#Export directive
+export(
+rknnBeg, rknnBel, bestset, confusion, confusion2acc, cv.coef,
+eta, r, lambda, 
+normalize.decscale, normalize.sigmoidal, normalize.softmax, normalize.unit, 
+prebestset, predicted, PRESS, 
+rknn, rknn.cv, 
+#rknn.kf.xcv, rknn.xcv, rknn.pxcv,
+rknnReg, 
+rsqp, 
+rknnSupport, rknnRegSupport, 
+varNotUsed, varUsed
+)
+
+
+S3method(print, rknn)
+S3method(print, rknnBE)
+S3method(print, rknnSupport)
+S3method(plot, rknnSupport)
+S3method(plot, rknnBeg)
+S3method(plot, rknnBel)
+S3method(fitted, rknn)

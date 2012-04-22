@@ -1,0 +1,209 @@
+% -*- mode: noweb; noweb-default-code-mode: R-mode; -*-
+%\VignetteIndexEntry{1. rknn}
+%\VignetteKeyword{Random KNN}
+%\VignetteDepends{Biobase, genefilter, golubEsets}
+%\VignettePackage{rknn}
+\documentclass[12pt, pdftex]{article}
+\usepackage{amsmath, amssymb, amsthm, mathrsfs, relsize}
+\usepackage{graphics, pstricks}
+\usepackage{setspace, afterpage}
+\DeclareGraphicsExtensions{.pdf,.png,.jpg}
+\usepackage[bookmarksopen, pagebackref, breaklinks]{hyperref}
+\hypersetup{
+  pdftitle = {Random KNN Classification and Regression},
+  pdfkeywords = {Random KNN, Microarray, Variable Selection},
+  pdfsubject={rknn Package},
+  pdfauthor = {Shengqiao Li}
+}
+
+\usepackage{Sweave}
+\DefineVerbatimEnvironment{Sinput}{Verbatim}{fontshape=sl,formatcom=\color{blue}}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{fontshape=sl,formatcom=\color{teal}}
+\fvset{listparameters={\setlength{\topsep}{0pt}}}
+\renewenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
+
+\newcommand{\Rfunction}[1]{\texttt{#1}}
+\newcommand{\Rmethod}[1]{\texttt{#1}}
+\newcommand{\Rclass}[1]{\texttt{#1}}
+\newcommand{\Robject}[1]{\texttt{#1}}
+\newcommand{\Rpackage}[1]{\textit{#1}}
+\newcommand{\R}{\texttt{R }}
+
+\newcommand{\scscst}{\scriptscriptstyle}
+\newcommand{\scst}{\scriptstyle}
+
+\setlength{\topmargin}{0in}
+\setlength{\oddsidemargin}{0.5in}
+\setlength{\evensidemargin}{0.5in}
+\setlength{\textwidth}{6in}
+\setlength{\textheight}{8.5in}
+\headheight=0in
+
+\bibliographystyle{plainnat}
+
+\title{Random KNN Classification and Regression}
+\author{Shengqiao Li}
+
+\begin{document}
+\maketitle
+
+\section{Random KNN Application to Golub Leukemia Data}
+\subsection{Libraries and Data Sets}
+<<library, echo=TRUE>>=
+require(rknn)
+require(Biobase)
+require(genefilter)
+require(golubEsets)
+require(chemometrics)
+
+<<Golub_data, echo=TRUE>>=
+data(Golub_Train)
+data(Golub_Test)
+<<Golub_data_preprocess, echo=FALSE>>=
+mmfilt <- function(r=5, d=500, na.rm=TRUE) {
+  function(x) {
+    minval <-  min(x, na.rm=na.rm)
+    maxval <-  max(x, na.rm=na.rm)
+    (maxval/minval > r) && (maxval-minval > d)
+  }
+}
+GolubTrans <-function(eSet) {
+      X<- Biobase::exprs(eSet)
+      X[X<100]<- 100
+      X[X>16000]<- 16000
+
+      return(X)
+}
+
+gTrn <- GolubTrans(Golub_Train)
+gTest <- GolubTrans(Golub_Test)
+mmfun <- mmfilt()
+ffun <- filterfun(mmfun)
+sub <- genefilter(gTrn, ffun )
+#sum(sub) ## Should get 3051
+
+golubTrain<- log10(gTrn[sub,])
+golubTest<- log10(gTest[sub,])
+
+golub.train.cl<- Golub_Train$ALL.AML
+golub.test.cl<- Golub_Test$ALL.AML
+
+golub.train<- t(scale(golubTrain));
+golub.test<- t(scale(golubTest)); 
+@
+\section{Random KNN Results}
+Here, we will apply the Random KNN classifier to the leukemia data sets. We use the first data set as training set and the second data set as the testing set. We choose $m = \sqrt{p} \approx 55$. To choose $r$, we set $\tilde{\eta}=0.999$, thus $r=821$ and $\nu=14.8$. The following is the result:
+
+<<Golub_rknn, echo=TRUE>>=
+golub.rnn<- rknn(data=golub.train, newdata=golub.test, y=golub.train.cl,
+	 r=821, mtry=55, seed=20081029);
+
+golub.rnn 
+confusion(golub.test.cl, fitted(golub.rnn))
+
+@
+\doublespacing
+The confusion matrix of above random KNN classifier shows that of the 34 test samples, only two AML are misclassified as ALL.
+
+In above example, every feature is used and the multiplicities is between $\Sexpr{min(varUsed(golub.rnn))}$ and $\Sexpr{max(varUsed(golub.rnn))}$ as shown by following output:
+
+\singlespacing
+<<Multiplicity, echo=TRUE>>=
+length(varNotUsed(golub.rnn));
+golub.varUsed<- varUsed(golub.rnn);
+summary(golub.varUsed);
+@
+
+\doublespacing
+To check the distribution of feature multiplicities in these random KNNs, a histogram is plotted in Figure \ref{fig:hist}.
+\begin{figure}[!ht]
+\centering
+
+<<Multiplicity_Histogram, echo=TRUE, fig=TRUE>>=
+#flamehist(golub.varUsed, xlab="Multiplicity", main="")
+hist(golub.varUsed, xlab="Multiplicity", main="")
+@
+
+\caption{Histogram of the feature multiplicities}
+\label{fig:hist}
+\end{figure}
+
+
+The multiplicity is approximately symmetric around 15.
+
+As shown above, the classification is quite accurate. But we prefer a simpler model that use a few of genes, i.e., a \emph{gene signature}. Next section will demonstrate feature selection with Random KNN.
+
+\clearpage
+\section{Feature Selection}
+
+\begin{figure}[!htb]
+\centering
+<<Golub_support, echo=TRUE, fig=TRUE>>=
+golub.support<- rknnSupport(golub.train, golub.train.cl, k=3)
+golub.support
+plot(golub.support, main="Support Criterion Plot")
+@
+\caption{Support plot for Golub leukemia training data}
+\label{fig:golub_beg}
+\end{figure}
+
+\begin{figure}[!htb]
+\centering
+<<Golub_beg, echo=TRUE, fig=TRUE>>=
+set.seed(20081031)
+golub.beg<- rknnBeg(golub.train, golub.train.cl);
+plot(golub.beg)
+@
+\caption{Mean accuracy change with the number of features for Golub leukemia data in first stage}
+\label{fig:golub_beg}
+\end{figure}
+
+
+\begin{figure}[!htb]
+\centering
+<<Golub_bel, echo=TRUE, fig=TRUE>>=
+better.set<- prebestset(golub.beg);
+golub.bel<- rknnBel(golub.train[,better.set], golub.train.cl);
+plot(golub.bel, ylim=c(0.88, 1))
+@
+\caption{Mean accuracy change with the number of features for Golub leukemia data in second stage}
+\label{fig:golub_bel}
+\end{figure}
+
+Figure \ref{fig:golub_beg} shows the mean accuracy increment with decreasing number of features using the Golub leukemia data in the first stage of feature selection.
+
+Figure \ref{fig:golub_bel} shows the mean accuracy increment with decreasing number of features of the Golub leukemia data in the second stage of feature selection. From this figure, when 4 genes are left in the model, a maximum mean accuracy is reached. These 4 genes for leukemia classification are:
+
+<<four_genes, echo=TRUE>>=
+best.set<- bestset(golub.bel);
+cat(best.set, sep=", "); #remove[1] and quote, and comma.
+@
+
+Now we use these four genes and the ordinary KNN classifier to classify the 34 independent test samples, the confusion matrix is:
+
+<<test_golub_by_four_genes, echo=TRUE>>=
+test.class<- knn(golub.train[, best.set], golub.test[, best.set], golub.train.cl, k=3)
+#test.class;
+confusion(golub.test.cl, test.class);
+@
+
+Two ALL samples are classified as AML and one AML is classified as ALL. Total accuracy is as high as 91\%. This model is very simple compared with others that use much more genes.
+
+\clearpage
+\section{Regression}
+
+\begin{figure}[!htb]
+\centering
+<<PAC, echo=TRUE, eval=TRUE, fig=TRUE>>=
+data(PAC)
+x<- scale(PAC$X);
+PAC.beg<- rknnBeg(data=x, y=PAC$y, k=3, r=500, pk=0.8)
+plot(PAC.beg)
+
+knn.reg(x[,bestset(PAC.beg)],  y=PAC$y, k=3)
+
+@
+
+\caption{Mean accuracy change with the number of features for PAC data in second stage}
+\end{figure}
+\end{document}
