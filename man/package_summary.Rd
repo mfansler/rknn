@@ -9,14 +9,14 @@
 \tabular{ll}{
 Package: \tab rknn\cr
 Type: \tab Package\cr
-Version: \tab 1.0\cr
-Date: \tab 2012-04-22\cr
-Depends: \tab R (>= 2.15.0), gmp, FNN\cr
+Version: \tab 1.1\cr
+Date: \tab 2013-08-05\cr
+Depends: \tab R (>= 2.15.0), gmp\cr
 Suggests: \tab Hmisc, Biobase, genefilter, golubEsets, chemometrics\cr
 Imports: \tab class, FNN\cr
 License: \tab GPL (>=2)\cr
 LazyLoad: \tab yes\cr
-Packaged: \tab 2012-04-2\cr
+Packaged: \tab 2013-08-5\cr
 }
 
 Index:

@@ -7,9 +7,9 @@
 
 \usage{
 rknnSupport(data, y, k = 1, r = 500, mtry = trunc(sqrt(ncol(data))), 
-    fixed.partition = FALSE, Random.seed = NULL, seed = NULL, knn.algo="VR")
+    fixed.partition = FALSE, cluster=NULL, seed = NULL)
 rknnRegSupport(data, y, k = k, r = 500, mtry = trunc(sqrt(ncol(data))), 
-    fixed.partition = FALSE, Random.seed = NULL, seed = NULL, knn.algo="VR")
+    fixed.partition = FALSE, cluster=NULL, seed = NULL)
 }
 
 \arguments{
@@ -18,12 +18,9 @@ rknnRegSupport(data, y, k = k, r = 500, mtry = trunc(sqrt(ncol(data))),
   \item{k}{Number of nearest neighbors.}
   \item{r}{Number of KNNs.}
   \item{mtry}{Number of features to be drawn for each KNN.}
-  \item{fixed.partition}{Logical. Use fixed partition of dynamic partition of the data into training and testing subsets for each KNN.
-}
-
-  \item{Random.seed}{A seed in the \code{.Random.seed} format.}
+  \item{fixed.partition}{Logical. Use fixed partition of dynamic partition of the data into training and testing subsets for each KNN.}
+  \item{cluster}{An object of class `c("SOCKcluster", "cluster")'}
   \item{seed}{An integer seed.}
-  \item{knn.algo}{nearest neighbor searching algorithm.}
 }
 
 \value{A \code{supportKNN} object.}

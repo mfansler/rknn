@@ -1,12 +1,13 @@
-###################################################################
-# Random KNN Properties                                           #
-# File:   protert.R                                               #
-# Author: Shengqiao Li                                            #
-# Date:   June 24, 2008 (initial)                                 #
-# Dependency: class, drep, Hmisc                                  #
-# Change Log:                                                     #
-#           March 02, 2010 - using gmp to compute eta             #
-###################################################################
+#############################################################################
+# Random KNN Properties                                           
+# File:   protert.R                                               
+# Author: Shengqiao Li                                            
+# Date:   June 24, 2008 (initial)                                 
+# Dependency: class, drep, Hmisc                                  
+# Change Log:                                                     
+#           March 02, 2010 - using gmp to compute eta             
+#           2013-08-06 -- using gmp 0.5-5 (chooseZ, pow.bigz and crossprod)         
+############################################################################
 
 #Overloading problem %*% and prod in this package
 #explicitly call %*%.bigq, %*%.bigz, prod.bigz to solve
@@ -28,12 +29,13 @@ rbyv<- function(p, m, nu)
 
 rbyz<- function(p, m)
 {
-  if(!require(gmp)) stop("gmp package is required. Otherwise use other method!")
+ 
+  #if(!require(gmp)) stop("gmp package is required. Otherwise use other method!")
   
-  Cpm<- choose.bigz(p,m);
+  Cpm<- chooseZ(p,m);
   j<- 1:p;
 
-  res<- "%*%.bigq"(as.bigq(Cpm)*as.bigq((-1)^(j+1)), cbind(choose.bigz(p, j)/(Cpm-choose.bigz(p-j,m))))
+  res<- crossprod((-1)^(j+1) * Cpm, cbind(chooseZ(p, j)/(Cpm-chooseZ(p-j, m))))
 
   round(as.double(res))
 }
@@ -94,15 +96,17 @@ rbylambda<- function(p, m, lambda=1)
 #
 #}
  
+
+
 eta<- function(p, m, r, method=c("binomial", "poisson", "exact"))
 {
   #coverage probability
   method <- match.arg(method);
   switch(method,
     exact = {
-        if(!require(gmp)) stop("gmp package is required. Otherwise use other method!")
+#        if(!require(gmp)) stop("gmp package is required. Otherwise use other method!")
         j<- 0:p;
-        res<- "%*%.bigz"(as.bigz((-1)^(p-j)), cbind(choose.bigz(p, j)*pow(choose.bigz(j, m), r)))/pow(choose.bigz(p,m), r)
+        res<- crossprod((-1)^(p-j), cbind(chooseZ(p, j)*pow.bigz(chooseZ(j, m), r))) / pow.bigz(chooseZ(p,m), r)
         as.double(res);
     },
     binomial = {

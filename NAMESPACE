@@ -1,12 +1,15 @@
-#Import directive
-importFrom(FNN, get.knn, get.knnx, knn, knn.cv, knn.reg)
+
+##Load dynamic library
+useDynLib(rknn, C_knnc = knnc, C_knnr = knnr)
+##useDynLib(rknn, .registration = TRUE, .fixes = "C_")
+
 #Export directive
 export(
 rknnBeg, rknnBel, bestset, confusion, confusion2acc, cv.coef,
 eta, r, lambda, 
 normalize.decscale, normalize.sigmoidal, normalize.softmax, normalize.unit, 
 prebestset, predicted, PRESS, 
-rknn, rknn.cv, 
+knn.reg, rknn, rknn.cv, 
 #rknn.kf.xcv, rknn.xcv, rknn.pxcv,
 rknnReg, 
 rsqp, 

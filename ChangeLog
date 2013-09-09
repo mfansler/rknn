@@ -1,0 +1,3 @@
+2013-08-06:
+  Computation is parallelized.
+  Updated some internal functions with respect to gmp 0.5-5.

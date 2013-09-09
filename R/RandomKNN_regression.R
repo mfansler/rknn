@@ -3,7 +3,7 @@
 # File:   RandomKNN_regression.R                                               #
 # Author: Shengqiao Li                                                         #
 # Date:   June 24, 2008 (initial)                                              #
-# Dependency: FNN, drep                                                        #
+# 2013-5-14 parallelization                                                    #
 ################################################################################
 pressresid<- function(obj)
 { 
@@ -100,17 +100,36 @@ rsqp<- function(obj)
 #
 #}
 #
+
 rknnReg<- function(data, newdata, y, k=1, r=500,
                    mtry=trunc(sqrt(ncol(data))), 
-                   Random.seed=NULL, 
-                   seed=NULL,
-                   knn.algo="VR"
+                   cluster=NULL,
+                   seed=NULL
 )
 {
-   if(!require(FNN)) stop("FNN package is required!");
+
+  knns<- function(data, newdata, y, k, r, mtry)
+  {
+     p<-ncol(newdata);
+     n<-nrow(newdata);
+     
+     selected<- matrix(integer(), nrow=r, ncol=mtry);
+     pred.all<- matrix(nrow=n, ncol=r);
+     
+     for(j in 1:r){
+  
+        fset<- sample(p, mtry);
+        aknn<- knn.reg(train=data[, fset], test=newdata[, fset], y=y, k=k);
+       
+        selected[j,]<- fset;
+        pred.all[,j]<- aknn$pred;
+    }
+  
+    return(list(selected=selected, pred.all= pred.all));   
+  }
    
    res<- list(call=match.call());
-   res$Random.seed<- set.return.seed(Random.seed, seed);
+
 
    res$k<- k;
    res$r<- r;
@@ -120,26 +139,27 @@ rknnReg<- function(data, newdata, y, k=1, r=500,
    p<- ncol(newdata);
    res$p<- p;
 
-   selected<- matrix(integer(), nrow=r, ncol=mtry);
-
-   pred.all<- matrix(nrow=n, ncol=r);
-
-   for(j in 1:r){
-
-        fset<- sample(p, mtry);
-        selected[j,]<- fset;
-        aknn<- knn.reg(train=data[, fset], test=newdata[, fset], y=y, k=k, algorithm="VR")$pred;
-
-        pred.all[,j]<- aknn;
-
+   if(!is.null(cluster)){
+      clusterSetRNGStream(cluster, seed);      
+      clusterExport(cluster, c('knns', 'data', 'newdata', 'y', 'k', 'mtry'), envir=environment());
+      
+      cluster.result<- clusterApply(cluster, splitR(r, length(cluster)), function(r) knns(data=data, newdata=newdata, y=y, k=k, r=r, mtry=mtry));
+      selected<- matrix(unlist(lapply(cluster.result, function(x)t(x$selected))), ncol=mtry, byrow=TRUE);
+      pred.all<- matrix(unlist(lapply(cluster.result, function(x)x$pred.all)), nrow=n, byrow=FALSE);  
    }
-
+   else{
+      set.seed(seed);
+      result<- knns(data=data, newdata=newdata, y=y, k=k, r=r, mtry=mtry);
+      selected<- result$selected;
+      pred.all<- result$pred.all;
+  }    
+      
   pred<- rowMeans(pred.all);
 
   res$pred<- pred;
-  res$residuals<- pred-y;
+  #res$residuals<- pred-y;
 
-   #features<- table(selected);
+  #features<- table(selected);
 
   #names(features)<- colnames(data)[as.integer(names(features))];
   res$features<- if(is.null(colnames(data))){1:p} else colnames(data);
@@ -154,15 +174,47 @@ rknnReg<- function(data, newdata, y, k=1, r=500,
 rknnRegSupport<- function(data, y, k=k, r=500,
                      mtry=trunc(sqrt(ncol(data))), 
                      fixed.partition=FALSE, 
-                     Random.seed=NULL, 
-                     seed=NULL,
-                     knn.algo="VR"
+                     cluster=NULL,
+                     seed=NULL
 )
-{
-   if(!require(FNN)) stop("FNN package is required!");
+{    
+   	knns<- function(data, y, k, r, mtry, fixed.partition=FALSE)
+	 {	 
+	   selected<- matrix(0, nrow=r, ncol=mtry);
+     SS<- numeric(r); #Sum of square errors for each randomKNN
+     n<- nrow(data);
+     p<-  ncol(data);
+     
+     pred<- vector("list", length=n);
+
+    if(fixed.partition){
+   		  dset<-  sample(n, n/2);   #bipartition
+        tset<- setdiff(1:n, dset);
+	   }
+   
+  	 for(i in 1:r){
+  	   	if(!fixed.partition){
+     		   dset<-  sample(n, n/2);   #bipartition
+           tset<- setdiff(1:n, dset);
+      	}
+        fset<- sample(p, mtry);
+        selected[i,]<- fset;
+        aknn<- knn.reg(train=data[dset, fset], test=data[tset, fset], y=y[dset], k=k)$pred;
+  
+        SS[i]<- sum((aknn-y[tset])^2);
+
+        for(j in 1:length(tset)){
+          pred[[tset[j]]]<- c(pred[[tset[j]]], aknn[j])
+        }
+        for(j in 1:length(tset)){
+          pred[[tset[j]]]<- c(pred[[tset[j]]], aknn[j])
+        }
+      
+     }
+    return(list(selected=selected, SS=SS, pred=pred)); 
+	 }
    
    res<- list(call=match.call());
-   res$Random.seed<- set.return.seed(Random.seed, seed);
 
    res$k<- k;
    res$r<- r;
@@ -171,44 +223,41 @@ rknnRegSupport<- function(data, y, k=k, r=500,
    n<- nrow(data);
    p<- ncol(data);
 
-   selected<- matrix(0, nrow=r, ncol=mtry);
-
    SSt<- sum((y-mean(y))^2);
 
-   SS<- numeric(r); #Sum of square errors for each randomKNN
-   pred<- vector("list", length=n);
+  if(is.null(cluster)){
+      set.seed(seed);
+      
+     result<- knns(data=data, y=y, k=k, r=r, mtry=mtry, fixed.partition=fixed.partition);
+     selected<- result$selected;
+     SS<- result$SS;
+     pred<- result$pred;
+   } 
+   else{
+      clusterSetRNGStream(cluster, seed);      
+      clusterExport(cluster, c('knns', 'data', 'y', 'k', 'mtry'), envir=environment());
+      
+      cluster.result<- clusterApply(cluster, splitR(r, length(cluster)), 
+        function(r) knns(data=data, y=y, k=k, r=r, mtry=mtry, fixed.partition=fixed.partition));
 
-   if(fixed.partition){
-   		  dset<-  sample(n, n/2);   #bipartition
-        tset<- setdiff(1:n, dset);
-	}
-
-   for(i in 1:r){
-	   	if(!fixed.partition){
-   		    dset<-  sample(n, n/2);   #bipartition
-        	tset<- setdiff(1:n, dset);
-    	}
-        fset<- sample(p, mtry);
-        selected[i,]<- fset;
-        aknn<- knn.reg(train=data[dset, fset], test=data[tset, fset], y=y[dset], k=k, algorithm="VR")$pred;
-
-        SS[i]<- sum((aknn-y[tset])^2);
-
-        for(j in 1:length(tset)){
-          pred[[tset[j]]]<- c(pred[[tset[j]]], aknn[j])
-        }
+      SS<- unlist(lapply(cluster.result, function(x)x$SS));    
+      
+      selected<- matrix(unlist(lapply(cluster.result, function(x)t(x$selected))), ncol=mtry, byrow=TRUE);
+      
+      pred<- vector("list", length=n);
+      for(i in 1:n){
+        tmp<- vector("list", length=length(cluster));    
+        for(j in 1:length(cluster))
+        {
+            tmp[[j]]<- cluster.result[[j]]$pred[[i]]      
+        }      
+        pred[[i]]<- unlist(tmp);
+      }  
    }
 
-	if(!fixed.partition){
-  		res$pred<- sapply(pred, mean);
-
-  		res$SS<- sum((res$pred-y)^2);
-    	res$accuracy<- 1- res$SS/SSt; #R-square
-  		res$confusion<- rbind("Observed"=y, "Predicted"=res$pred);
-
-	}
-	else{
-
+	if(fixed.partition){
+    tset<- which(!sapply(pred, is.null));
+    
  		for(j in 1:length(tset))  pred[[tset[j]]]<- mean(pred[[tset[j]]]);
 
   		res$pred<- unlist(pred);
@@ -216,6 +265,14 @@ rknnRegSupport<- function(data, y, k=k, r=500,
   		res$SS<- sum((res$pred-y[tset])^2);
       res$accuracy<- 1- res$SS/SSt; #R-square
   		res$confusion<- rbind("Observed"=y[tset], "Predicted"=res$pred);
+	}
+  else{
+  		res$pred<- sapply(pred, mean);
+
+  		res$SS<- sum((res$pred-y)^2);
+    	res$accuracy<- 1- res$SS/SSt; #R-square
+  		res$confusion<- rbind("Observed"=y, "Predicted"=res$pred);
+
 	}
 
   selected<- as.vector(selected);

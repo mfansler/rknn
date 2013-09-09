@@ -7,6 +7,7 @@
 # Change Log:                                                                  #
 #           December 11, 2008 - Add set.return.seed                            #
 #           January 31, 2009 - Add randomKNN.cv                                #
+#           May, 2013 -- Parallelization                                       #  
 ################################################################################
 
 #imputation method in R
@@ -30,19 +31,42 @@ cv.coef<- function(x)
   sd(x)/mean(x)
 }
 
+
+
 rknn<- function(data, newdata, y, k=1, r=500, 
               mtry=trunc(sqrt(ncol(data))),
-              Random.seed=NULL, seed=NULL, knn.algo="VR"
+              cluster=NULL, seed=NULL
 )
 {
   #
   #Note: kknn::kknn is not good as class::knn. Low accuracy for Golub data
   #      klaR::sknn is even worse
   # 
-   if(!require(FNN)) stop("FNN package is required!");
    
+   knns<- function(data, newdata, y, k, r, mtry)
+   {
+     p<-ncol(newdata);
+     n<-nrow(newdata);
+     
+     selected<- matrix(integer(), nrow=r, ncol=mtry);
+     pred.all<- matrix(nrow=n, ncol=r);
+     
+     for(j in 1:r){
+  
+        fset<- sample(p, mtry);
+        aknn<- knn(train=data[, fset], test=newdata[, fset], cl=y, k=k);
+       
+        selected[j,]<- fset;
+        pred.all[,j]<- as.integer(aknn);
+    }
+  
+    return(list(selected=selected, pred.all= pred.all));   
+   }
+  
    res<- list(call=match.call());
-   res$Random.seed<- set.return.seed(Random.seed, seed);
+   
+#disable 
+#   res$Random.seed<- set.return.seed(Random.seed, seed);
    
    p<- ncol(newdata);
    
@@ -56,19 +80,24 @@ rknn<- function(data, newdata, y, k=1, r=500,
 
    if(!is.factor(y)) y<- as.factor(y);
 
-   selected<- matrix(integer(), nrow=r, ncol=mtry);
-
-   pred.all<- matrix(nrow=n, ncol=r);
-
-   for(j in 1:r){
-
-        fset<- sample(p, mtry);
-        selected[j,]<- fset;
-        aknn<- knn(train=data[, fset], test=newdata[, fset], cl=y, k=k, algorithm=knn.algo);
-
-        pred.all[,j]<- as.integer(aknn);
-
+   if(!is.null(cluster)){
+      getLoadedDLLs();
+      
+      clusterSetRNGStream(cluster, seed);      
+      clusterExport(cluster, c('knns', 'data', 'newdata', 'y', 'k', 'mtry'), envir=environment());
+      
+      cluster.result<- clusterApply(cluster, splitR(r, length(cluster)), function(r) knns(data=data, newdata=newdata, y=y, k=k, r=r, mtry=mtry));
+      selected<- matrix(unlist(lapply(cluster.result, function(x)t(x$selected))), ncol=mtry, byrow=TRUE);
+      pred.all<- matrix(unlist(lapply(cluster.result, function(x)x$pred.all)), nrow=n, byrow=FALSE);
+      
    }
+   else{
+      set.seed(seed);
+
+      result<- knns(data=data, newdata=newdata, y=y, k=k, r=r, mtry=mtry);
+      selected<- result$selected;
+      pred.all<- result$pred.all;
+  }
 
   pred<- character(n);
   for(i in 1:n) pred[i]<- names(which.max(table(pred.all[i,])));
@@ -88,16 +117,39 @@ rknn<- function(data, newdata, y, k=1, r=500,
   return(res);
 }
 
+
+##cross-validation
+
 rknn.cv<- function(data, y, k=1, r=500, 
           mtry=trunc(sqrt(ncol(data))),
-          Random.seed=NULL, seed=NULL,
-          knn.algo="VR"
-)
+          cluster=NULL, seed=NULL
+          )
 {   
-   if(!require(FNN)) stop("FNN package is required!");
+
+  knns.cv<- function(data, y, k, r, mtry)
+  {
+     p<-ncol(data);
+     n<-nrow(data);
      
+     selected<- matrix(integer(), nrow=r, ncol=mtry);
+     pred.all<- matrix(nrow=n, ncol=r);
+     
+     for(j in 1:r){
+  
+        fset<- sample(p, mtry);
+        aknn<- knn.cv(train=data[, fset], cl=y, k=k);
+       
+        selected[j,]<- fset;
+        pred.all[,j]<- as.integer(aknn);
+    }
+  
+    return(list(selected=selected, pred.all= pred.all));   
+  }          
+  
+        
    res<- list(call=match.call());
-   res$Random.seed<- set.return.seed(Random.seed, seed);   
+
+
    p<- ncol(data);
    n<- nrow(data);
 
@@ -109,20 +161,23 @@ rknn.cv<- function(data, y, k=1, r=500,
 
    if(!is.factor(y)) y<- as.factor(y);
 
-   selected<- matrix(integer(), nrow=r, ncol=mtry);
-
-   pred.all<- matrix(nrow=n, ncol=r);
-
-   for(j in 1:r){
-
-        fset<- sample(p, mtry);
-        selected[j,]<- fset;
-        aknn<- knn.cv(train=data[, fset], cl=y, k=k, algorithm="VR");
-
-        pred.all[,j]<- as.integer(aknn);
-
+  if(!is.null(cluster)){
+      clusterSetRNGStream(cluster, seed);      
+      clusterExport(cluster, c('knns.cv', 'data', 'y', 'k', 'mtry'), envir=environment());
+      
+      cluster.result<- clusterApply(cluster, splitR(r, length(cluster)), function(r) knns.cv(data=data, y=y, k=k, r=r, mtry=mtry));
+      selected<- matrix(unlist(lapply(cluster.result, function(x)t(x$selected))), ncol=mtry, byrow=TRUE);
+      pred.all<- matrix(unlist(lapply(cluster.result, function(x)x$pred.all)), nrow=n, byrow=FALSE);
+      
    }
+   else{
+      set.seed(seed);
 
+      result<- knns.cv(data=data, y=y, k=k, r=r, mtry=mtry);
+      selected<- result$selected;
+      pred.all<- result$pred.all;
+  }
+          
   pred<- character(n);
   for(i in 1:n) pred[i]<- names(which.max(table(pred.all[i,])));
 

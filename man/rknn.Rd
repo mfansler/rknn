@@ -8,9 +8,11 @@
 
 \usage{
 rknn(data, newdata, y, k = 1, r = 500, mtry = trunc(sqrt(ncol(data))), 
-    Random.seed = NULL, seed = NULL, knn.algo="VR")
-rknn.cv(data, y, k = 1, r = 500, mtry=trunc(sqrt(ncol(data))),
-	Random.seed = NULL, seed = NULL, knn.algo="VR")
+        cluster = NULL, seed = NULL)
+rknn.cv(data, y, k = 1, r = 500, mtry=trunc(sqrt(ncol(data))), 
+        cluster=NULL, seed = NULL)
+rknnReg(data, newdata, y, k=1, r=500,  mtry=trunc(sqrt(ncol(data))), 
+        cluster=NULL, seed=NULL)	
 }
 
 \arguments{
@@ -20,9 +22,8 @@ rknn.cv(data, y, k = 1, r = 500, mtry=trunc(sqrt(ncol(data))),
   \item{k}{Number of nearest neighbors.}
   \item{r}{Number of KNNs.}
   \item{mtry}{Number of features to be drawn for each KNN.}
-  \item{Random.seed}{A seed in the \code{.Random.seed} format.}
+  \item{cluster}{An object of class `c("SOCKcluster", "cluster")'}
   \item{seed}{An integer seed.}
-  \item{knn.algo}{nearest neighbor searching algorithm.}
 }
 
 \value{Return a \code{RandomKNN} object.}
