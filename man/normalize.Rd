@@ -24,7 +24,7 @@ A normalized data matrix.
 }
  
 \author{
-Shengqiao Li<shli@stat.wvu.edu>
+Shengqiao Li<lishengqiao@yahoo.com>
 } 
 %\seealso{
 %\code{\link[dprep]{decscale}},  \code{\link[dprep]{signorm}}, \code{\link[dprep]{softmaxnorm}} and \code{\link[dprep]{rangenorm}} in \code{dprep} package.

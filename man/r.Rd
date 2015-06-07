@@ -36,9 +36,7 @@ r(p, m = floor(sqrt(p)), eta = 0.99, nu = 20, rmax = p, nsim = 1000,
 }
 
 \author{
-Shengqiao Li
-
-Maintainer: Shengqiao Li<shli@stat.wvu.edu>
+Shengqiao Li<lishengqiao@yahoo.com>
 }
 
 \examples{

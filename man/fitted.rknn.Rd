@@ -18,7 +18,7 @@
   A vector of fitted values.
 }
 \author{
-Shengqiao Li<shli@stat.wvu.edu>
+Shengqiao Li<lishengqiao@yahoo.com>
 }
 
 \examples{

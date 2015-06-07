@@ -29,7 +29,7 @@ rknnReg(data, newdata, y, k=1, r=500,  mtry=trunc(sqrt(ncol(data))),
 \value{Return a \code{RandomKNN} object.}
 
 \author{
-Shengqiao Li<shli@stat.wvu.edu>
+Shengqiao Li<lishengqiao@yahoo.com>
 }
 \keyword{multivariate}
 \keyword{models}

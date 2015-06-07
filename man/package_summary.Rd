@@ -62,7 +62,7 @@ varUsed                 Features Used or Not Used in Random KNN
 \author{
 Shengqiao Li
 
-Maintainer: Shengqiao Li <shli@stat.wvu.edu>
+Maintainer: Shengqiao Li <lishengqiao@yahoo.com>
 }
 \keyword{ package }
 

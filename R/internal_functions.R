@@ -108,7 +108,7 @@ knn<- function (train, test, cl, k = 1)
         as.integer(unclass(clf)), as.double(test), res = integer(nte), 
         pr = double(nte), integer(nc + 1), as.integer(nc), 
         as.integer(FALSE), as.integer(use.all), nn.index = integer(nte * k), 
-        nn.dist = double(nte * k), DUP = FALSE) 
+        nn.dist = double(nte * k)) 
     
     res <- factor(Z$res, levels = seq_along(levels(clf)), labels = levels(clf))
 
@@ -143,7 +143,7 @@ knn.cv<- function (train, cl, k = 1)
         as.integer(unclass(clf)), as.double(train), res = integer(ntr), 
         pr = double(ntr), integer(nc + 1), as.integer(nc), 
         as.integer(TRUE), as.integer(use.all), nn.index = integer(ntr * 
-            k), nn.dist = double(ntr * k), DUP = FALSE)
+            k), nn.dist = double(ntr * k))
     res <- factor(Z$res, levels = seq_along(levels(clf)), labels = levels(clf))
 
     return(res)
@@ -166,7 +166,7 @@ knn.reg<- function (train, test = NULL, y, k = 3)
     pred <- .C(C_knnr, as.integer(k), as.integer(ntr), as.integer(n), 
         as.integer(p), as.double(train), as.double(y), as.double(if (is.null(test)) train else test), 
         res = double(n), as.integer(is.null(test)), as.integer(use.all), 
-        nn.index = integer(n * k), nn.dist = double(n * k), DUP = FALSE)$res;
+        nn.index = integer(n * k), nn.dist = double(n * k))$res;
     if (is.null(test)) {
         residuals <- y - pred
         PRESS <- sum(residuals^2)

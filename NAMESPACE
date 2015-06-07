@@ -1,4 +1,4 @@
-
+import(gmp, parallel)
 ##Load dynamic library
 useDynLib(rknn, C_knnc = knnc, C_knnr = knnr)
 ##useDynLib(rknn, .registration = TRUE, .fixes = "C_")

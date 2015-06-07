@@ -58,7 +58,7 @@
   \item{obj}{A linear model.}
 } 
 \author{
-Shengqiao Li<shli@stat.wvu.edu>
+Shengqiao Li<lishengqiao@yahoo.com>
 }
 
  

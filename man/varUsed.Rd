@@ -23,7 +23,7 @@ varNotUsed(x)
 
 
 \author{
-Shengqiao Li<shli@stat.wvu.edu>
+Shengqiao Li<lishengqiao@yahoo.com>
 }
 
 \keyword{multivariate}

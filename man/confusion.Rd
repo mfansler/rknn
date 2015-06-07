@@ -22,7 +22,7 @@ confusion2acc(ct)
 }
 
 \author{
-Shengqiao Li<shli@stat.wvu.edu>
+Shengqiao Li<lishengqiao@yahoo.com>
 }
 
 \examples{

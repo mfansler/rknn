@@ -17,6 +17,6 @@ lambda(p, m, r)
 \value{ A scalar for the mean silent features. }
 
 \author{
-Shengqiao Li<shli@stat.wvu.edu>
+Shengqiao Li<lishengqiao@yahoo.com>
 }
 \keyword{distribution}
