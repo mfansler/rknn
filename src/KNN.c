@@ -39,7 +39,7 @@ void knnc(const int *kin, 		//k
 
     for (npat = 0; npat < nte; npat++) {
 		kn = kinit;
-		for (k = 0; k < kn; k++) nndist[k] = 0.99 * DOUBLE_XMAX;
+		for (k = 0; k < kn; k++) nndist[k] = 0.99 * DBL_MAX;
 		for (j = 0; j < ntr; j++) {
 	    	if ((*cv > 0) && (j == npat))	continue;
 	    	dist = 0.0;
@@ -65,7 +65,7 @@ void knnc(const int *kin, 		//k
 		    		}
 	    	 	}
 	    	}
-	    	nndist[kn] = 0.99 * DOUBLE_XMAX;
+	    	nndist[kn] = 0.99 * DBL_MAX;
 		}
 
 		for (k = 0; k < kinit; k++){		/*return distances and indice - Shengqiao Li*/
@@ -160,7 +160,7 @@ void knnr(const int *kin, 		//k
 
     for (npat = 0; npat < nte; npat++) {
   		kn = kinit;
-  		for (k = 0; k < kn; k++) nndist[k] = 0.99 * DOUBLE_XMAX;
+  		for (k = 0; k < kn; k++) nndist[k] = 0.99 * DBL_MAX;
   		for (j = 0; j < ntr; j++) {
   	    	if ((*cv > 0) && (j == npat))	continue;
   	    	dist = 0.0;
@@ -186,7 +186,7 @@ void knnr(const int *kin, 		//k
     		    		}
     	    	 	}
     	    	}
-  	    	nndist[kn] = 0.99 * DOUBLE_XMAX;
+  	    	nndist[kn] = 0.99 * DBL_MAX;
   		}
   		for (k = 0; k < kinit; k++){		/*return distances and indice - Shengqiao Li*/
   			nn_dist[k*nte+npat]= sqrt(nndist[k]);			
